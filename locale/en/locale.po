@@ -12,7 +12,7 @@ msgstr ""
 "Language: en\n"
 
 msgid "plugins.generic.changePassword.displayName"
-msgstr "Change Password Plugin"
+msgstr "Change Password"
 
 msgid "plugins.generic.changePassword.description"
 msgstr "This plugin adds a 'Change Password' option to the user management grid in the admin panel."
@@ -37,3 +37,12 @@ msgstr "Password must be at least 6 characters long."
 
 msgid "plugins.generic.changePassword.changePasswordFor"
 msgstr "Change Password for {$username}"
+
+msgid "plugins.generic.changePassword.error.userNotFound"
+msgstr "User not found."
+
+msgid "plugins.generic.changePassword.error.missingData"
+msgstr "Missing required data."
+
+msgid "plugins.generic.changePassword.error.passwordTooShort"
+msgstr "Password must be at least 6 characters long."

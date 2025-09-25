@@ -12,7 +12,7 @@ msgstr ""
 "Language: ar\n"
 
 msgid "plugins.generic.changePassword.displayName"
-msgstr "إضافة تغيير كلمة المرور"
+msgstr " تغيير كلمة المرور"
 
 msgid "plugins.generic.changePassword.description"
 msgstr "تضيف هذه الإضافة خيار 'تغيير كلمة المرور' إلى شبكة إدارة المستخدمين في لوحة الإدارة."
@@ -37,3 +37,12 @@ msgstr "يجب أن تكون كلمة المرور 6 أحرف على الأقل.
 
 msgid "plugins.generic.changePassword.changePasswordFor"
 msgstr "تغيير كلمة المرور لـ {$username}"
+
+msgid "plugins.generic.changePassword.error.userNotFound"
+msgstr "المستخدم غير موجود."
+
+msgid "plugins.generic.changePassword.error.missingData"
+msgstr "بيانات مطلوبة مفقودة."
+
+msgid "plugins.generic.changePassword.error.passwordTooShort"
+msgstr "يجب أن تكون كلمة المرور 6 أحرف على الأقل."

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>URL Debug Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>URL Construction Debug</h1>
+    <div id="results"></div>
+    
+    <script>
+        // Test different URL patterns
+        var testUrls = [
+            "https://ejuow.uowasit.edu.iq/index.php/ejuow/management/changePassword",
+            "https://ejuow.uowasit.edu.iq/index.php/ejuow/en/changePassword", 
+            "http://127.0.0.1:8002/index.php/lark/en/changePassword",
+            "https://example.com/index.php/journal/fr/changePassword"
+        ];
+        
+        function testUrlConstruction(testUrl) {
+            // Simulate window.location for testing
+            var url = new URL(testUrl);
+            var currentPath = url.pathname;
+            var pathParts = currentPath.split("/").filter(function(part) { return part !== ""; });
+            var baseUrl = url.origin;
+            var contextPath = "";
+            var languageCode = "en"; // default language
+            
+            // Find the context path and language code (usually after index.php)
+            var indexPhpIndex = pathParts.indexOf("index.php");
+            if (indexPhpIndex !== -1 && pathParts.length > indexPhpIndex + 1) {
+                // The part immediately after index.php is the context (journal/conference name)
+                contextPath = "/" + pathParts[indexPhpIndex + 1];
+                
+                // Check if the next part is a language code (2-5 characters, common language codes)
+                if (pathParts.length > indexPhpIndex + 2) {
+                    var potentialLangCode = pathParts[indexPhpIndex + 2];
+                    // Common language codes pattern
+                    if (potentialLangCode.match(/^[a-z]{2}(_[A-Z]{2})?$/)) {
+                        languageCode = potentialLangCode;
+                    }
+                }
+            }
+            
+            var updatePasswordUrl = baseUrl + "/index.php" + contextPath + "/" + languageCode + "/changePassword/updatePassword";
+            
+            return {
+                original: testUrl,
+                pathParts: pathParts,
+                contextPath: contextPath,
+                languageCode: languageCode,
+                constructedUrl: updatePasswordUrl
+            };
+        }
+        
+        var results = document.getElementById('results');
+        testUrls.forEach(function(url) {
+            var result = testUrlConstruction(url);
+            results.innerHTML += '<div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc;">' +
+                '<strong>Original:</strong> ' + result.original + '<br>' +
+                '<strong>Path Parts:</strong> [' + result.pathParts.join(', ') + ']<br>' +
+                '<strong>Context Path:</strong> ' + result.contextPath + '<br>' +
+                '<strong>Language Code:</strong> ' + result.languageCode + '<br>' +
+                '<strong>Constructed URL:</strong> ' + result.constructedUrl + '<br>' +
+                '</div>';
+        });
+    </script>
+</body>
+</html>

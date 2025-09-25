@@ -31,6 +31,9 @@ class ChangePasswordHandler extends PKPHandler
     {
         parent::__construct();
         
+        error_log("ChangePasswordHandler: Constructor called");
+        error_log("ChangePasswordHandler: Available methods: " . implode(', ', get_class_methods($this)));
+        
         // Add role assignments for authorization
         $this->addRoleAssignment(
             [Role::ROLE_ID_SITE_ADMIN, Role::ROLE_ID_MANAGER],
@@ -61,49 +64,59 @@ class ChangePasswordHandler extends PKPHandler
      * @return string Template output
      */
     public function index($args, $request)
-     {
-     }
-
-  
+    {
+        error_log("ChangePasswordHandler: index called with args: " . print_r($args, true));
+        
+        // Default behavior for index page - display the interface
+        error_log("ChangePasswordHandler: returning default index");
+        return '';
+    }
 
     /**
-     * Update the user's password
+     * Handle password update operation
      *
      * @param array $args
      * @param PKPRequest $request
      *
-     * @return JSONMessage JSON object
+     * @return JSONMessage
      */
     public function updatePassword($args, $request)
     {
-        // Debug: Log all received parameters
+        error_log("ChangePasswordHandler: updatePassword method called");
         
-        // Get userId from POST data (from AJAX request)
-        $userId = (int) $request->getUserVar('userId');
+        // Get the user ID and new password from the request
+        $userId = $request->getUserVar('userId');
         $newPassword = $request->getUserVar('newPassword');
         
+        error_log("ChangePasswordHandler: userId=" . $userId . ", password length=" . strlen($newPassword));
         
+        // Validate input
         if (!$userId || !$newPassword) {
-            return new JSONMessage(false, 'Missing required parameters');
+            error_log("ChangePasswordHandler: Missing userId or newPassword");
+            return new JSONMessage(false, __('plugins.generic.changePassword.error.missingData'));
         }
         
-        $user = Repo::user()->get($userId, true);
-
-        if (!$user) {
-            return new JSONMessage(false, 'User not found');
-        }
-
-        // Validate password length
         if (strlen($newPassword) < 6) {
-            return new JSONMessage(false, 'Password must be at least 6 characters long');
+            error_log("ChangePasswordHandler: Password too short");
+            return new JSONMessage(false, __('plugins.generic.changePassword.error.passwordTooShort'));
         }
-
-        // Update the user's password
+        
+        // Get the user from the repository
+        $user = Repo::user()->get($userId);
+        if (!$user) {
+            error_log("ChangePasswordHandler: User not found");
+            return new JSONMessage(false, __('plugins.generic.changePassword.error.userNotFound'));
+        }
+        
+        // Encrypt and set the new password
         $user->setPassword(Validation::encryptCredentials($user->getUsername(), $newPassword));
         
         // Save the user
         Repo::user()->edit($user, []);
         
-        return new JSONMessage(true, 'Password updated successfully');
+        error_log("ChangePasswordHandler: Password updated successfully for user " . $userId);
+        
+        // Return success message
+        return new JSONMessage(true, __('plugins.generic.changePassword.passwordChanged'));
     }
 }

@@ -1,32 +1,39 @@
 $(document).ready(function() {
     var currentPage = 1;
-    var usersPerPage = 10;
+    var usersPerPage = 25; // Changed to match API standard
     var allUsers = [];
     var filteredUsers = [];
     var selectedUser = null;
+    var totalUsers = 0; // Track total users from server
+    var currentSearchTerm = ""; // Track current search term
     
-    // Load users from API
-    function loadUsers() {
+    // Load users from API with server-side pagination
+    function loadUsers(page = 1, searchTerm = "") {
         var statusDiv = document.getElementById("usersTableBody");
         statusDiv.innerHTML = "<tr><td colspan=\"5\" class=\"text-center\"><div class=\"pkp_spinner\"></div> Loading users...</td></tr>";
         
         // Get the base URL and context path dynamically
         var baseUrl = window.location.protocol + "//" + window.location.host;
-        var pathParts = window.location.pathname.split("/");
+        console.log("ChangePasswordPlugin: loadUsers - baseUrl:", baseUrl);
+
+        var pathParts = window.location.pathname.split("/").filter(function(part) { return part !== ""; });
         var contextPath = "";
+        console.log("ChangePasswordPlugin: loadUsers - pathParts:", pathParts);
         
         // Find the context path (usually after index.php)
-        for (var i = 0; i < pathParts.length; i++) {
-            if (pathParts[i] === "index.php" && i + 1 < pathParts.length) {
-                contextPath = pathParts[i + 1];
-                break;
-            }
+        var indexPhpIndex = pathParts.indexOf("index.php");
+        if (indexPhpIndex !== -1 && pathParts.length > indexPhpIndex + 1) {
+            contextPath = pathParts[indexPhpIndex + 1];
         }
         
-        // Construct the API URL
+        // Calculate offset for server-side pagination
+        var offset = (page - 1) * usersPerPage;
+        
+        // Construct the API URL with proper pagination parameters
+        var searchParam = searchTerm ? "searchPhrase=" + encodeURIComponent(searchTerm) : "searchPhrase";
         var apiUrl = contextPath ? 
-            baseUrl + "/index.php/" + contextPath + "/api/v1/users?searchPhrase&status=all&includePermissions=true&offset=0&count=100&page=1&perPage=100" :
-            baseUrl + "/api/v1/users?searchPhrase&status=all&includePermissions=true&offset=0&count=100&page=1&perPage=100";
+            baseUrl + "/index.php/" + contextPath + "/api/v1/users?" + searchParam + "&status=all&includePermissions=true&offset=" + offset + "&count=" + usersPerPage + "&page=" + page + "&perPage=" + usersPerPage :
+            baseUrl + "/api/v1/users?" + searchParam + "&status=all&includePermissions=true&offset=" + offset + "&count=" + usersPerPage + "&page=" + page + "&perPage=" + usersPerPage;
         
         var apiUrls = [apiUrl];
         
@@ -44,10 +51,13 @@ $(document).ready(function() {
                     console.log("Successfully loaded users from:", apiUrls[urlIndex]);
                     if (data.items && Array.isArray(data.items)) {
                         allUsers = data.items;
-                        filteredUsers = allUsers;
+                        filteredUsers = allUsers; // For server-side pagination, these are the same
+                        totalUsers = data.itemsMax || data.total || data.items.length; // Get total from server
+                        currentPage = page;
+                        currentSearchTerm = searchTerm;
                         displayUsers();
                         updatePagination();
-                        $("#changePasswordResult").html("<div class=\"alert alert-success\">Loaded " + data.items.length + " users from OJS API (Total: " + data.itemsMax + ")</div>");
+                        $("#changePasswordResult").html("<div class=\"alert alert-success\">Loaded " + data.items.length + " users (Page " + page + " of " + Math.ceil(totalUsers / usersPerPage) + ", Total: " + totalUsers + ")</div>");
                     } else {
                         tryNextUrl(urlIndex + 1);
                     }
@@ -102,121 +112,159 @@ $(document).ready(function() {
     
     // Display users for current page
     function displayUsers() {
-        var startIndex = (currentPage - 1) * usersPerPage;
-        var endIndex = startIndex + usersPerPage;
-        var usersToShow = filteredUsers.slice(startIndex, endIndex);
+        var tbody = $("#usersTableBody");
+        tbody.empty();
         
-        var html = "";
-        if (usersToShow.length === 0) {
-            html = "<tr><td colspan=\"5\" class=\"text-center\">No users found</td></tr>";
-        } else {
-            $.each(usersToShow, function(index, user) {
-                // Handle different user data formats from OJS API
-                var userId = user.id || user.userId || user._id;
-                var username = user.userName || user.username || user.name;
-                var email = user.email || user.emailAddress;
-                var fullName = user.fullName || 
-                              (user.givenName && user.familyName ? 
-                               (user.givenName.en || user.givenName) + " " + (user.familyName.en || user.familyName) :
-                               user.firstName + " " + user.lastName) ||
-                              username;
-                
-                // Handle user groups/roles
-                var roles = "";
-                if (user.groups && Array.isArray(user.groups)) {
-                    roles = user.groups.map(function(group) {
-                        return group.name || group.abbrev || group;
-                    }).join(", ");
-                } else if (user.roles && Array.isArray(user.roles)) {
-                    roles = user.roles.join(", ");
-                }
-                
-                html += "<tr class=\"border border-separate border-light even:bg-tertiary\">";
-                html += "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + (username || "N/A") + "</span></td>";
-                html += "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + (email || "N/A") + "</span></td>";
-                html += "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + (fullName || "N/A") + "</span></td>";
-                html += "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + (roles || "N/A") + "</span></td>";
-                html += "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"><button class=\"pkpButton inline-flex relative items-center gap-x-1  text-lg-semibold text-primary border-light  hover:text-hover disabled:text-disabled  bg-secondary py-[0.4375rem] px-3 border rounded change-password-btn\" data-user-id=\"" + userId + "\" data-user-name=\"" + (username || "") + "\">Change Password</button></td>";
-                html += "</tr>";
-            });
+        if (allUsers.length === 0) {
+            tbody.append("<tr><td colspan=\"5\" class=\"text-center\">No users found</td></tr>");
+            return;
         }
         
-        $("#usersTableBody").html(html);
+        // Display all users from current page (server already filtered them)
+        allUsers.forEach(function(user) {
+            var username = user.userName || user.username || user.name || "N/A";
+            var email = user.email || user.emailAddress || "N/A";
+            var fullName = user.fullName || 
+                          (user.givenName && user.familyName ? 
+                           (user.givenName.en || user.givenName) + " " + (user.familyName.en || user.familyName) :
+                           user.firstName + " " + user.lastName) ||
+                          username;
+            
+            // Handle user groups/roles
+            var roles = "";
+            if (user.groups && Array.isArray(user.groups)) {
+                roles = user.groups.map(function(group) {
+                    return group.name || group.abbrev || group;
+                }).join(", ");
+            } else if (user.roles && Array.isArray(user.roles)) {
+                roles = user.roles.join(", ");
+            }
+            
+            var row = "<tr class=\"border border-separate border-light even:bg-tertiary\">" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + username + "</span></td>" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + email + "</span></td>" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + fullName + "</span></td>" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + roles + "</span></td>" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\">" +
+                "<button class=\"pkpButton pkpButton--isPrimary change-password-btn\" data-user-id=\"" + user.id + "\" data-username=\"" + username + "\">Change Password</button>" +
+                "</td></tr>";
+            tbody.append(row);
+        });
     }
-    
-    // Update pagination controls
+
+    // Update pagination controls for server-side pagination
     function updatePagination() {
-        var totalUsers = filteredUsers.length;
         var totalPages = Math.ceil(totalUsers / usersPerPage);
         var startIndex = (currentPage - 1) * usersPerPage + 1;
         var endIndex = Math.min(currentPage * usersPerPage, totalUsers);
         
-        // Update info
-        $("#paginationInfo").text("Showing " + startIndex + " - " + endIndex + " of " + totalUsers + " users");
+        // Update info - handle case when no users
+        if (totalUsers === 0) {
+            $("#paginationInfo").text("Showing 0 users");
+        } else {
+            $("#paginationInfo").text("Showing " + startIndex + " - " + endIndex + " of " + totalUsers + " users");
+        }
         
         // Update buttons
         $("#prevPage").prop("disabled", currentPage <= 1);
-        $("#nextPage").prop("disabled", currentPage >= totalPages);
+        $("#nextPage").prop("disabled", currentPage >= totalPages || totalPages === 0);
         
         // Update page numbers
         var pageNumbersHtml = "";
-        for (var i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-            if (i === currentPage) {
-                pageNumbersHtml += "<strong>" + i + "</strong> ";
-            } else {
-                pageNumbersHtml += "<a href=\"#\" class=\"page-link\" data-page=\"" + i + "\">" + i + "</a> ";
+        if (totalPages > 0) {
+            var startPage = Math.max(1, currentPage - 2);
+            var endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (var i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    pageNumbersHtml += "<button class=\"pkpButton inline-flex relative items-center gap-x-1 border-transparent hover:enabled:underline disabled:text-disabled text-lg-medium text-primary border-light hover:text-hover disabled:text-disabled py-[0.4375rem] px-3 border rounded pkpPagination__page\" type=\"button\" aria-label=\"Go to Page " + i + "\" aria-current=\"true\" data-page=\"" + i + "\" style=\"background-color: #e5e7eb;\">" + i + "</button> ";
+                } else {
+                    pageNumbersHtml += "<button class=\"pkpButton inline-flex relative items-center gap-x-1 border-transparent hover:enabled:underline disabled:text-disabled text-lg-medium text-primary border-light hover:text-hover disabled:text-disabled py-[0.4375rem] px-3 border rounded page-link\" type=\"button\" aria-label=\"Go to Page " + i + "\" data-page=\"" + i + "\">" + i + "</button> ";
+                }
             }
+        } else {
+            pageNumbersHtml = "<button class=\"pkpButton inline-flex relative items-center gap-x-1 border-transparent hover:enabled:underline disabled:text-disabled text-lg-medium text-primary border-light hover:text-hover disabled:text-disabled py-[0.4375rem] px-3 border rounded pkpPagination__page\" type=\"button\" aria-label=\"Go to Page 1\" aria-current=\"true\" data-page=\"1\" disabled>1</button>";
         }
         $("#pageNumbers").html(pageNumbersHtml);
     }
-    
-    // Search functionality
+
+    // Search functionality with server-side filtering
     $("#userSearch").on("input", function() {
         var searchTerm = $(this).val().toLowerCase();
-        if (searchTerm === "") {
-            filteredUsers = allUsers;
-        } else {
-            filteredUsers = allUsers.filter(function(user) {
-                return (user.fullName && user.fullName.toLowerCase().includes(searchTerm)) ||
-                       (user.userName && user.userName.toLowerCase().includes(searchTerm)) ||
-                       (user.email && user.email.toLowerCase().includes(searchTerm));
-            });
-        }
-        currentPage = 1;
-        displayUsers();
-        updatePagination();
+        // Load users from server with search term
+        loadUsers(1, searchTerm);
     });
-    
-    // Pagination event handlers
-    $("#prevPage").on("click", function() {
+
+    // Display users (simplified for server-side pagination)
+    function displayUsers() {
+        var tbody = $("#usersTableBody");
+        tbody.empty();
+        
+        if (allUsers.length === 0) {
+            tbody.append("<tr><td colspan=\"5\" class=\"text-center\">No users found</td></tr>");
+            return;
+        }
+        
+        // Display all users from current page (server already filtered them)
+        allUsers.forEach(function(user) {
+            var username = user.userName || user.username || user.name || "N/A";
+            var email = user.email || user.emailAddress || "N/A";
+            var fullName = user.fullName || 
+                          (user.givenName && user.familyName ? 
+                           (user.givenName.en || user.givenName) + " " + (user.familyName.en || user.familyName) :
+                           user.firstName + " " + user.lastName) ||
+                          username;
+            
+            // Handle user groups/roles
+            var roles = "";
+            if (user.groups && Array.isArray(user.groups)) {
+                roles = user.groups.map(function(group) {
+                    return group.name || group.abbrev || group;
+                }).join(", ");
+            } else if (user.roles && Array.isArray(user.roles)) {
+                roles = user.roles.join(", ");
+            }
+            
+            var row = "<tr class=\"border border-separate border-light even:bg-tertiary\">" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + username + "</span></td>" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + email + "</span></td>" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + fullName + "</span></td>" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\"> <span class=\"text-base-normal\">" + roles + "</span></td>" +
+                "<td scope=\"false\" class=\"px-2 py-2 border-b border-light text-start text-base-normal first:border-s first:ps-3 last:border-e last:pe-3\">" +
+                "<button class=\"pkp_button submitFormButton change-password-btn\" data-user-id=\"" + user.id + "\" data-username=\"" + username + "\">Change Password</button>" +
+                "</td></tr>";
+            tbody.append(row);
+        });
+    }
+
+    // Pagination event handlers - updated for server-side pagination
+    $(document).on("click", "#prevPage", function() {
         if (currentPage > 1) {
-            currentPage--;
-            displayUsers();
-            updatePagination();
+            loadUsers(currentPage - 1, currentSearchTerm);
         }
     });
-    
-    $("#nextPage").on("click", function() {
-        var totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
+    $(document).on("click", "#nextPage", function() {
+        var totalPages = Math.ceil(totalUsers / usersPerPage);
         if (currentPage < totalPages) {
-            currentPage++;
-            displayUsers();
-            updatePagination();
+            loadUsers(currentPage + 1, currentSearchTerm);
         }
     });
-    
-    // Page number clicks
+
     $(document).on("click", ".page-link", function(e) {
         e.preventDefault();
-        currentPage = parseInt($(this).data("page"));
-        displayUsers();
-        updatePagination();
+        var page = parseInt($(this).data("page"));
+        if (page && page !== currentPage) {
+            loadUsers(page, currentSearchTerm);
+        }
     });
     
     // Change password button clicks
     $(document).on("click", ".change-password-btn", function() {
         var userId = $(this).data("user-id");
-        var userName = $(this).data("user-name");
+        var userName = $(this).data("username"); // Fixed: changed from user-name to username
+        
+        console.log("Button clicked - userId:", userId, "userName:", userName);
         
         $("#selectedUserId").val(userId);
         $("#selectedUserName").text(userName);
@@ -243,6 +291,13 @@ $(document).ready(function() {
         var userId = $("#selectedUserId").val();
         var newPassword = $("#newPassword").val();
         
+        console.log("Form submission - userId:", userId, "password length:", newPassword ? newPassword.length : 0);
+        
+        if (!userId) {
+            $("#changePasswordResult").html("<div class=\"alert alert-danger\">Please select a user first.</div>");
+            return;
+        }
+        
         if (!newPassword) {
             $("#changePasswordResult").html("<div class=\"alert alert-danger\">Please enter a new password.</div>");
             return;
@@ -257,23 +312,42 @@ $(document).ready(function() {
         
         // Get the base URL and context path dynamically
         var currentPath = window.location.pathname;
-        var pathParts = currentPath.split("/");
+        var pathParts = currentPath.split("/").filter(function(part) { return part !== ""; });
         var baseUrl = window.location.origin;
         var contextPath = "";
+        var languageCode = "en"; // default language
+        
+        console.log("URL construction - currentPath:", currentPath);
+        console.log("URL construction - pathParts:", pathParts);
         
         // Find the context path and language code (usually after index.php)
         var indexPhpIndex = pathParts.indexOf("index.php");
-        var languageCode = "en"; // default language
-        if (indexPhpIndex !== -1) {
-            if (pathParts[indexPhpIndex + 1]) {
-                contextPath = "/" + pathParts[indexPhpIndex + 1];
-            }
-            if (pathParts[indexPhpIndex + 2]) {
-                languageCode = pathParts[indexPhpIndex + 2];
+        if (indexPhpIndex !== -1 && pathParts.length > indexPhpIndex + 1) {
+            // The part immediately after index.php is the context (journal/conference name)
+            contextPath = "/" + pathParts[indexPhpIndex + 1];
+            
+            // Check if there's a language code in the current URL
+            if (pathParts.length > indexPhpIndex + 2) {
+                var potentialLangCode = pathParts[indexPhpIndex + 2];
+                // Common language codes pattern (2-5 characters)
+                if (potentialLangCode.match(/^[a-z]{2}(_[A-Z]{2})?$/)) {
+                    languageCode = potentialLangCode;
+                } else {
+                    // No language code in URL, don't add one
+                    languageCode = "";
+                }
+            } else {
+                // No language code in URL, don't add one
+                languageCode = "";
             }
         }
         
-        var updatePasswordUrl = baseUrl + "/index.php" + contextPath + "/" + languageCode + "/changePassword/updatePassword";
+        // Construct URL - only add language code if it exists in current URL
+        var updatePasswordUrl = baseUrl + "/index.php" + contextPath + 
+            (languageCode ? "/" + languageCode : "") + "/changePassword/updatePassword";
+        
+        console.log("Final URL:", updatePasswordUrl);
+        console.log("Sending data - userId:", userId, "newPassword length:", newPassword.length);
         
         // Make AJAX request to update password
         $.ajax({

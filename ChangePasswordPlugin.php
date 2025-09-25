@@ -14,6 +14,7 @@ require_once __DIR__ . '/ChangePasswordHandler.php';
 use PKP\plugins\GenericPlugin;
 use PKP\plugins\Hook;
 use PKP\core\PKPApplication;
+use APP\plugins\generic\changePassword\ChangePasswordHandler;
 
 class ChangePasswordPlugin extends GenericPlugin
 {
@@ -22,35 +23,47 @@ class ChangePasswordPlugin extends GenericPlugin
      */
     public function register($category, $path, $mainContextId = null)
     {
-        $success = parent::register($category, $path, $mainContextId);
-        if ($success) {
-            // Register locale data for translations
-            $this->addLocaleData();
-            
-            // Register hooks - check if plugin is enabled for LoadHandler
-            if ($this->getEnabled($mainContextId)) {
-                Hook::add('LoadHandler', [$this, 'loadHandler']);
-            }
-            Hook::add('Template::Settings::access', [$this, 'addAccessTab']);
-            
-            // Add debug logging
-            error_log("ChangePasswordPlugin: Plugin registered successfully. Enabled: " . ($this->getEnabled($mainContextId) ? 'true' : 'false'));
+        error_log("ChangePasswordPlugin: Attempting to register plugin");
+        if (!parent::register($category, $path, $mainContextId)) {
+            return false;
         }
-        return $success;
+        
+        // Register locale data for translations
+        $this->addLocaleData();
+        
+        // Register hooks - always register LoadHandler, check enabled status in the handler
+        Hook::add('LoadHandler', [$this, 'loadHandler']);
+        Hook::add('Template::Settings::access', [$this, 'addAccessTab']);
+        
+        // Add debug logging - use try-catch to avoid registration failure
+        try {
+            $enabled = $this->getEnabled($mainContextId);
+            error_log("ChangePasswordPlugin: Plugin registered successfully. Enabled: " . ($enabled ? 'true' : 'false'));
+        } catch (\Exception $e) {
+            error_log("ChangePasswordPlugin: Plugin registered successfully. Could not check enabled status: " . $e->getMessage());
+        }
+        return true;
     }
 
     /**
      * Load the handler for the change password page
+     *
+     * @param string $hookName
+     * @param array $args
+     *
+     * @return bool
      */
     public function loadHandler($hookName, $args)
     {
-        
         $page = $args[0];
         $handler = &$args[3];
         
+        error_log("ChangePasswordPlugin: LoadHandler called for page: " . $page);
         
         if ($page === 'changePassword') {
+            error_log("ChangePasswordPlugin: Loading ChangePasswordHandler");
             $handler = new ChangePasswordHandler();
+            error_log("ChangePasswordPlugin: Handler loaded: " . get_class($handler));
             return true;
         }
         
@@ -97,20 +110,21 @@ class ChangePasswordPlugin extends GenericPlugin
      */
     public function addAccessTab($hookName, $args)
     {
-        
         $templateMgr = $args[1];
         $output = &$args[2];
         $request = PKPApplication::get()->getRequest();
         
-        // Create a comprehensive tab content with table, pagination, and search
-        $tabContent = '<div class="pkp_page_content">
-            <h2>' . __('plugins.generic.changePassword.displayName') . '</h2>
-            <p>' . __('plugins.generic.changePassword.description') . '</p>
-            <div class="section">
-                <h3>Change User Password</h3>
-                
-                <!-- Search Box -->
-                <div class="flex-shrink-0">
+        // Add the tab using the proper Vue.js structure
+        $output .= sprintf(
+            '<tab id="changePassword" label="%s">
+                <div class="pkp_page_content">
+                    <h2>%s</h2>
+                    <p>%s</p>
+                    <div class="section">
+                        <h3>Change User Password</h3>
+                        
+                        <!-- Search Box -->
+                        <div class="flex-shrink-0">
                             <div class="flex gap-x-2">
                                 <div class="pkpSearch">
                                     <label>
@@ -127,82 +141,84 @@ class ChangePasswordPlugin extends GenericPlugin
                                 </div>
                             </div>
                         </div>
-                
-                <!-- Users Table -->
-                <div class="table-responsive">
-                    <table class="w-full max-w-full border-separate border-spacing-0" id="usersTable">
-                        <thead>
-                            <tr calss="bg bg-default" >
-                                <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">UserName</span></th>
-                                <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">Email</span></th>
-                                <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">Name</span></th>
-                                <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">Roles</span></th>
-                               <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">Action</span></th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <tr>
-                                <td colspan="5" class="text-center">Loading users...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Pagination -->
-                <div class="flex justify-between items-center px-2 py-2 border-b border-x border-light">
-                    <span id="resultsCounter">Showing <strong>1 to 25</strong> of 0</span>
-                    <nav class="pkpPagination" role="navigation" aria-label="View additional pages">
-                        <ul id="paginationList">
-                            <li>
-                                <button class="pkpButton inline-flex relative items-center gap-x-1 border-transparent hover:enabled:underline disabled:text-disabled text-lg-medium text-primary border-light hover:text-hover disabled:text-disabled py-[0.4375rem] px-3 border rounded" 
-                                        type="button" id="prevBtn" disabled aria-label="Go to Previous">
-                                    Previous
-                                </button>
-                            </li>
-                            <li>
-                                <button class="pkpButton inline-flex relative items-center gap-x-1 border-transparent hover:enabled:underline disabled:text-disabled text-lg-medium text-primary border-light hover:text-hover disabled:text-disabled py-[0.4375rem] px-3 border rounded pkpPagination__page" 
-                                        type="button" aria-label="Go to Page 1" aria-current="true" data-page="1">
-                                    1
-                                </button>
-                            </li>
-                            <li>
-                                <button class="pkpButton inline-flex relative items-center gap-x-1 border-transparent hover:enabled:underline disabled:text-disabled text-lg-medium text-primary border-light hover:text-hover disabled:text-disabled py-[0.4375rem] px-3 border rounded" 
-                                        type="button" id="nextBtn">
-                                    Next
-                                </button>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-                
-                <!-- Password Change Modal -->
-                <div id="passwordModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
-                    <div style="background-color: white; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 400px; border-radius: 5px;">
-                        <h4>Change Password for <span id="selectedUserName"></span></h4>
-                        <form class="pkp_form" id="changePasswordForm">
-                        <div class="section">
-                            <input type="hidden" id="selectedUserId" name="userId">
-                            <div class="pkp_helpers_half" style="margin-bottom: 15px;">
-                                <label for="newPassword">New Password:</label>
-                                <input type="password" id="newPassword" name="newPassword" class="field text required" required>
+                        
+                        <!-- Users Table -->
+                        <div class="table-responsive">
+                            <table class="w-full max-w-full border-separate border-spacing-0" id="usersTable">
+                                <thead>
+                                    <tr class="bg bg-default">
+                                        <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">UserName</span></th>
+                                        <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">Email</span></th>
+                                        <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">Name</span></th>
+                                        <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">Roles</span></th>
+                                        <th scope="col" class="px-2 py-4 uppercase whitespace-nowrap border-t border-b border-light text-start text-base-normal text-heading first:border-s first:ps-3 last:border-e last:pe-3"><span class="">Action</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Loading users...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div class="flex justify-between items-center px-2 py-2 border-b border-x border-light">
+                            <span id="paginationInfo">Showing <strong>1 to 25</strong> of 0</span>
+                            <nav class="pkpPagination" role="navigation" aria-label="View additional pages">
+                                <ul id="paginationList">
+                                    <li>
+                                        <button class="pkpButton inline-flex relative items-center gap-x-1 border-transparent hover:enabled:underline disabled:text-disabled text-lg-medium text-primary border-light hover:text-hover disabled:text-disabled py-[0.4375rem] px-3 border rounded" 
+                                                type="button" id="prevPage" disabled aria-label="Go to Previous">
+                                            Previous
+                                        </button>
+                                    </li>
+                                    <li id="pageNumbers">
+                                        <button class="pkpButton inline-flex relative items-center gap-x-1 border-transparent hover:enabled:underline disabled:text-disabled text-lg-medium text-primary border-light hover:text-hover disabled:text-disabled py-[0.4375rem] px-3 border rounded pkpPagination__page" 
+                                                type="button" aria-label="Go to Page 1" aria-current="true" data-page="1">
+                                            1
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="pkpButton inline-flex relative items-center gap-x-1 border-transparent hover:enabled:underline disabled:text-disabled text-lg-medium text-primary border-light hover:text-hover disabled:text-disabled py-[0.4375rem] px-3 border rounded" 
+                                                type="button" id="nextPage">
+                                            Next
+                                        </button>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                        
+                        <!-- Password Change Modal -->
+                        <div id="passwordModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%%; height: 100%%; background-color: rgba(0,0,0,0.5);">
+                            <div style="background-color: white; margin: 15%% auto; padding: 20px; border: 1px solid #888; width: 400px; border-radius: 5px;">
+                                <h4>Change Password for <span id="selectedUserName"></span></h4>
+                                <form class="pkp_form" id="changePasswordForm">
+                                    <div class="section">
+                                        <input type="hidden" id="selectedUserId" name="userId">
+                                        <div class="pkp_helpers_half" style="margin-bottom: 15px;">
+                                            <label for="newPassword">New Password:</label>
+                                            <input type="password" id="newPassword" name="newPassword" class="field text required" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <button type="submit" class="pkp_button submitFormButton">Change Password</button>
+                                            <button type="button" id="cancelModal" class="pkp_button submitFormButton" style="margin-left: 10px;">Cancel</button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div id="changePasswordResult" style="margin-top: 15px;"></div>
                             </div>
-                            <div class="form-group">
-                                <button type="submit" class="pkp_button submitFormButton">Change Password</button>
-                                <button type="button" id="cancelModal" class="pkp_button submitFormButton" style="margin-left: 10px;">Cancel</button>
-                            </div>
-                            </div>
-                        </form>
-                        <div id="changePasswordResult" style="margin-top: 15px;"></div>
+                        </div>
                     </div>
+                    
+                    <script type="text/javascript" src="%s"></script>
                 </div>
-            </div>
-            
-                       
-            <script type="text/javascript" src="' . $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/changePassword.js"></script>
-        </div>';
-        
-        $output .= '<tab id="changePassword" label="' . __('plugins.generic.changePassword.displayName') . '">' . $tabContent . '</tab>';
-        
+            </tab>',
+            __('plugins.generic.changePassword.displayName'),
+            __('plugins.generic.changePassword.displayName'),
+            __('plugins.generic.changePassword.description'),
+            $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/changePassword.js'
+        );
         
         return false;
     }
