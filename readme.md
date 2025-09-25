@@ -2,6 +2,11 @@
 
 A plugin for [OJS 3.1.1+](https://github.com/pkp/ojs) which allows administrators to change user passwords through a web interface.
 
+## Version History
+
+- **v1.1.0** (2025-09-27) - Second release with improved stability and bug fixes
+- **v1.0.0** (2025-09-01) - Initial release
+
 ## Features
 
 - Web-based interface for changing user passwords
