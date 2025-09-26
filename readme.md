@@ -6,7 +6,7 @@ This plugin allows administrators to change user passwords from the OJS backend.
 
 ## Disclaimer
 
-This plugin was developed by a third party. The original author is not responsible for any errors or issues that may arise from its use. Please use at your own risk.
+This plugin was developed using AI tools. While efforts have been made to ensure quality and functionality, the developers are not responsible for any errors or issues that may arise from its use. Please use at your own risk and thoroughly test before deployment in a production environment.
 
 ## Version History
 
