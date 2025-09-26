@@ -2,13 +2,21 @@
 
 A plugin for [OJS 3.1.1+](https://github.com/pkp/ojs) which allows administrators to change user passwords through a web interface.
 
+This plugin allows administrators to change user passwords from the OJS backend.
+
+## Disclaimer
+
+This plugin was developed by a third party. The original author is not responsible for any errors or issues that may arise from its use. Please use at your own risk.
+
 ## Version History
 
-- **v1.1.2** (2025-01-28)
+- **v1.1.3** (2025-09-28)
+  - Added versioning to the JavaScript file to prevent caching issues.
+- **v1.1.2** (2025-09-28)
   - Fixed plugin name registration in the database.
-- **v1.1.1** (2025-01-27)
+- **v1.1.1** (2025-09-27)
   - Compatibility with OJS 3.5.0.
-- **v1.1.0** (2025-01-27)
+- **v1.1.0** (2025-09-27)
   - Improved stability and bug fixes.
 - **v1.0.0** (2025-09-01)
   - Initial release.
@@ -40,10 +48,9 @@ This plugin requires one of the following roles to access:
 ## Technical Details
 
 The plugin consists of:
-- `ChangePassword.php` - Main plugin class with hook registration
+- `ChangePasswordPlugin.php` - Main plugin class with hook registration
 - `ChangePasswordHandler.php` - Request handler for password operations
 - `changePassword.js` - Frontend JavaScript for user interaction
-- `changePassword.tpl` - Template for the user interface
 
 ## License
 

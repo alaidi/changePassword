@@ -217,7 +217,7 @@ class ChangePasswordPlugin extends GenericPlugin
             __('plugins.generic.changePassword.displayName'),
             __('plugins.generic.changePassword.displayName'),
             __('plugins.generic.changePassword.description'),
-            $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/changePassword.js'
+            $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/changePassword.js?v=' . $this->getCurrentVersion()->getVersionString()
         );
         
         return false;
