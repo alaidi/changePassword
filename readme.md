@@ -4,8 +4,14 @@ A plugin for [OJS 3.1.1+](https://github.com/pkp/ojs) which allows administrator
 
 ## Version History
 
-- **v1.1.0** (2025-09-27) - Second release with improved stability and bug fixes
-- **v1.0.0** (2025-09-01) - Initial release
+- **v1.1.2** (2025-01-28)
+  - Fixed plugin name registration in the database.
+- **v1.1.1** (2025-01-27)
+  - Compatibility with OJS 3.5.0.
+- **v1.1.0** (2025-01-27)
+  - Improved stability and bug fixes.
+- **v1.0.0** (2025-09-01)
+  - Initial release.
 
 ## Features
 
@@ -34,7 +40,7 @@ This plugin requires one of the following roles to access:
 ## Technical Details
 
 The plugin consists of:
-- `ChangePasswordPlugin.php` - Main plugin class with hook registration
+- `ChangePassword.php` - Main plugin class with hook registration
 - `ChangePasswordHandler.php` - Request handler for password operations
 - `changePassword.js` - Frontend JavaScript for user interaction
 - `changePassword.tpl` - Template for the user interface

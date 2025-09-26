@@ -7,7 +7,7 @@
    ```
    plugins/generic/changePassword/
    ├── ChangePasswordHandler.php
-   ├── ChangePasswordPlugin.php
+   ├── ChangePassword.php
    ├── version.xml
    ├── settings.xml
    ├── js/changePassword.js
@@ -44,8 +44,8 @@ Look for errors in:
 
 Common error patterns:
 ```
-PHP Fatal error: Class 'APP\plugins\generic\changePassword\ChangePasswordPlugin' not found
-PHP Parse error: syntax error in ChangePasswordPlugin.php
+PHP Fatal error: Class 'APP\plugins\generic\changePassword\ChangePassword' not found
+PHP Parse error: syntax error in ChangePassword.php
 Permission denied: plugins/generic/changePassword/
 ```
 
@@ -61,13 +61,13 @@ SELECT * FROM plugin_settings WHERE plugin_name = 'changepassword';
 ```
 
 ### Step 7: Debug Plugin Registration
-Add temporary debug logging to `ChangePasswordPlugin.php`:
+Add temporary debug logging to `ChangePassword.php`:
 ```php
 public function register($category, $path, $mainContextId = null)
 {
-    error_log("ChangePasswordPlugin: Attempting to register plugin");
+    error_log("ChangePassword: Attempting to register plugin");
     $success = parent::register($category, $path, $mainContextId);
-    error_log("ChangePasswordPlugin: Registration " . ($success ? "successful" : "failed"));
+    error_log("ChangePassword: Registration " . ($success ? "successful" : "failed"));
     return $success;
 }
 ```
@@ -77,7 +77,7 @@ Verify the LoadHandler hook is being called:
 ```php
 public function loadHandler($hookName, $args)
 {
-    error_log("ChangePasswordPlugin: LoadHandler called for page: " . $args[0]);
+    error_log("ChangePassword: LoadHandler called for page: " . $args[0]);
     // ... rest of method
 }
 ```

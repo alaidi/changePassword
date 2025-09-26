@@ -76,7 +76,7 @@ class ChangePasswordPlugin extends GenericPlugin
      * @return String name of plugin
      */
     public function getName() {
-        return 'changepassword';
+        return 'changepasswordplugin';
     }
     public function getDisplayName()
     {
