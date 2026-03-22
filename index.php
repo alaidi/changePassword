@@ -14,5 +14,3 @@
 require_once('ChangePasswordPlugin.php');
 
 return new APP\plugins\generic\changePassword\ChangePasswordPlugin();
-
-?>

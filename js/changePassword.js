@@ -14,11 +14,9 @@ $(document).ready(function() {
         
         // Get the base URL and context path dynamically
         var baseUrl = window.location.protocol + "//" + window.location.host;
-        console.log("ChangePasswordPlugin: loadUsers - baseUrl:", baseUrl);
 
         var pathParts = window.location.pathname.split("/").filter(function(part) { return part !== ""; });
         var contextPath = "";
-        console.log("ChangePasswordPlugin: loadUsers - pathParts:", pathParts);
         
         // Find the context path (usually after index.php)
         var indexPhpIndex = pathParts.indexOf("index.php");
@@ -48,7 +46,6 @@ $(document).ready(function() {
                 url: apiUrls[urlIndex],
                 method: "GET",
                 success: function(data) {
-                    console.log("Successfully loaded users from:", apiUrls[urlIndex]);
                     if (data.items && Array.isArray(data.items)) {
                         allUsers = data.items;
                         filteredUsers = allUsers; // For server-side pagination, these are the same
@@ -63,7 +60,6 @@ $(document).ready(function() {
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.log("Failed to load from:", apiUrls[urlIndex], "Error:", error);
                     tryNextUrl(urlIndex + 1);
                 }
             });
@@ -264,8 +260,6 @@ $(document).ready(function() {
         var userId = $(this).data("user-id");
         var userName = $(this).data("username"); // Fixed: changed from user-name to username
         
-        console.log("Button clicked - userId:", userId, "userName:", userName);
-        
         $("#selectedUserId").val(userId);
         $("#selectedUserName").text(userName);
         $("#newPassword").val("");
@@ -291,7 +285,6 @@ $(document).ready(function() {
         var userId = $("#selectedUserId").val();
         var newPassword = $("#newPassword").val();
         
-        console.log("Form submission - userId:", userId, "password length:", newPassword ? newPassword.length : 0);
         
         if (!userId) {
             $("#changePasswordResult").html("<div class=\"alert alert-danger\">Please select a user first.</div>");
@@ -316,9 +309,6 @@ $(document).ready(function() {
         var baseUrl = window.location.origin;
         var contextPath = "";
         var languageCode = "en"; // default language
-        
-        console.log("URL construction - currentPath:", currentPath);
-        console.log("URL construction - pathParts:", pathParts);
         
         // Find the context path and language code (usually after index.php)
         var indexPhpIndex = pathParts.indexOf("index.php");
@@ -346,8 +336,6 @@ $(document).ready(function() {
         var updatePasswordUrl = baseUrl + "/index.php" + contextPath + 
             (languageCode ? "/" + languageCode : "") + "/changePassword/updatePassword";
         
-        console.log("Final URL:", updatePasswordUrl);
-        console.log("Sending data - userId:", userId, "newPassword length:", newPassword.length);
         
         // Make AJAX request to update password
         $.ajax({
@@ -369,8 +357,6 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr, status, error) {
-                console.error("AJAX Error:", status, error);
-                console.error("Response:", xhr.responseText);
                 $("#changePasswordResult").html("<div class=\"alert alert-danger\">Error updating password. Please try again.</div>");
             }
         });

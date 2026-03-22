@@ -31,8 +31,6 @@ class ChangePasswordHandler extends PKPHandler
     {
         parent::__construct();
         
-        error_log("ChangePasswordHandler: Constructor called");
-        error_log("ChangePasswordHandler: Available methods: " . implode(', ', get_class_methods($this)));
         
         // Add role assignments for authorization
         $this->addRoleAssignment(
@@ -65,10 +63,6 @@ class ChangePasswordHandler extends PKPHandler
      */
     public function index($args, $request)
     {
-        error_log("ChangePasswordHandler: index called with args: " . print_r($args, true));
-        
-        // Default behavior for index page - display the interface
-        error_log("ChangePasswordHandler: returning default index");
         return '';
     }
 
@@ -82,29 +76,24 @@ class ChangePasswordHandler extends PKPHandler
      */
     public function updatePassword($args, $request)
     {
-        error_log("ChangePasswordHandler: updatePassword method called");
         
         // Get the user ID and new password from the request
         $userId = $request->getUserVar('userId');
         $newPassword = $request->getUserVar('newPassword');
         
-        error_log("ChangePasswordHandler: userId=" . $userId . ", password length=" . strlen($newPassword));
         
         // Validate input
         if (!$userId || !$newPassword) {
-            error_log("ChangePasswordHandler: Missing userId or newPassword");
             return new JSONMessage(false, __('plugins.generic.changePassword.error.missingData'));
         }
         
         if (strlen($newPassword) < 6) {
-            error_log("ChangePasswordHandler: Password too short");
             return new JSONMessage(false, __('plugins.generic.changePassword.error.passwordTooShort'));
         }
         
         // Get the user from the repository
         $user = Repo::user()->get($userId);
         if (!$user) {
-            error_log("ChangePasswordHandler: User not found");
             return new JSONMessage(false, __('plugins.generic.changePassword.error.userNotFound'));
         }
         
@@ -114,7 +103,6 @@ class ChangePasswordHandler extends PKPHandler
         // Save the user
         Repo::user()->edit($user, []);
         
-        error_log("ChangePasswordHandler: Password updated successfully for user " . $userId);
         
         // Return success message
         return new JSONMessage(true, __('plugins.generic.changePassword.passwordChanged'));

@@ -23,7 +23,6 @@ class ChangePasswordPlugin extends GenericPlugin
      */
     public function register($category, $path, $mainContextId = null)
     {
-        error_log("ChangePasswordPlugin: Attempting to register plugin");
         if (!parent::register($category, $path, $mainContextId)) {
             return false;
         }
@@ -38,7 +37,6 @@ class ChangePasswordPlugin extends GenericPlugin
         // Add debug logging - use try-catch to avoid registration failure
         try {
             $enabled = $this->getEnabled($mainContextId);
-            error_log("ChangePasswordPlugin: Plugin registered successfully. Enabled: " . ($enabled ? 'true' : 'false'));
         } catch (\Exception $e) {
             error_log("ChangePasswordPlugin: Plugin registered successfully. Could not check enabled status: " . $e->getMessage());
         }
@@ -58,12 +56,9 @@ class ChangePasswordPlugin extends GenericPlugin
         $page = $args[0];
         $handler = &$args[3];
         
-        error_log("ChangePasswordPlugin: LoadHandler called for page: " . $page);
         
         if ($page === 'changePassword') {
-            error_log("ChangePasswordPlugin: Loading ChangePasswordHandler");
             $handler = new ChangePasswordHandler();
-            error_log("ChangePasswordPlugin: Handler loaded: " . get_class($handler));
             return true;
         }
         
